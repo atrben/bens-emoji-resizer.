@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starfleet Emoji Resizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        #download {
+            display: none;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <h1>Starfleet Emoji Resizer</h1>
+    <p>Upload an image or GIF to resize it to 128x128 pixels for Slack.</p>
+    <input type="file" id="upload" accept="image/*">
+    <br><br>
+    <label><input type="checkbox" id="sparkle"> Add sparkle effect</label>
+    <br><br>
+    <button id="process">Process Image/GIF</button>
+    <br>
+    <a id="download">Download</a>
+
+    <!-- Load external libraries from CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gif-encoder-2@1.0.5/dist/GIFEncoder.min.js"></script>
+
+    <script>
+        // Load the sparkle image when the page loads
+        let sparkleImg = new Image();
+        sparkleImg.src = 'sparkle.png';
+
+        // Process the uploaded file when the button is clicked
+        document.getElementById('process').addEventListener('click', function() {
+            const file = document.getElementById('upload').files[0];
+            if (!file) {
+                alert('Please upload a file first!');
+                return;
+            }
+
+            const isGif = file.type === 'image/gif' || file.name.endsWith('.gif');
+            const addSparkle = document.getElementById('sparkle').checked;
+            const downloadLink = document.getElementById('download');
+
+            if (isGif) {
+                // Handle GIF processing
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const arrayBuffer = event.target.result;
+                    const gif = new GIF(arrayBuffer); // From gifuct-js
+                    const frames = gif.decompressFrames(true);
+
+                    // Set up GIF encoder
+                    const encoder = new GIFEncoder(128, 128);
+                    encoder.start();
+                    encoder.setRepeat(0); // Loop indefinitely
+
+                    // Process each frame
+                    frames.forEach(frame => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 128;
+                        canvas.height = 128;
+                        const ctx = canvas.getContext('2d');
+
+                        // Create ImageData from frame pixels
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = frame.dims.width;
+                        tempCanvas.height = frame.dims.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        const imageData = new ImageData(
+                            new Uint8ClampedArray(frame.pixels),
+                            frame.dims.width,
+                            frame.dims.height
+                        );
+                        tempCtx.putImageData(imageData, 0, 0);
+
+                        // Resize frame to 128x128
+                        ctx.drawImage(tempCanvas, 0, 0, 128, 128);
+
+                        // Add sparkle if checked
+                        if (addSparkle && sparkleImg.complete) {
+                            ctx.drawImage(sparkleImg, 0, 0, 128, 128);
+                        }
+
+                        // Add frame to encoder
+                        const resizedData = ctx.getImageData(0, 0, 128, 128);
+                        encoder.setDelay(frame.delay);
+                        encoder.addFrame(resizedData.data);
+                    });
+
+                    encoder.finish();
+                    const blob = new Blob([encoder.stream().getData()], { type: 'image/gif' });
+                    downloadLink.href = URL.createObjectURL(blob);
+                    downloadLink.download = 'resized.gif';
+                    downloadLink.style.display = 'block';
+                    downloadLink.textContent = 'Download Resized GIF';
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                // Handle static image processing
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 128;
+                    canvas.height = 128;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, 128, 128);
+
+                    // Add sparkle if checked
+                    if (addSparkle && sparkleImg.complete) {
+                        ctx.drawImage(sparkleImg, 0, 0, 128, 128);
+                    }
+
+                    const dataUrl = canvas.toDataURL('image/png');
+                    downloadLink.href = dataUrl;
+                    downloadLink.download = 'resized.png';
+                    downloadLink.style.display = 'block';
+                    downloadLink.textContent = 'Download Resized Image';
+                };
+                img.src = URL.createObjectURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
