@@ -102,6 +102,11 @@
                     downloadLink.download = 'resized.gif';
                     downloadLink.style.display = 'block';
                     downloadLink.textContent = 'Download Resized GIF';
+                    
+                    // Add click event to change text to "Downloaded"
+                    downloadLink.addEventListener('click', function() {
+                        downloadLink.textContent = 'Downloaded';
+                    });
                 };
                 reader.readAsArrayBuffer(file);
             } else {
@@ -124,6 +129,11 @@
                     downloadLink.download = 'resized.png';
                     downloadLink.style.display = 'block';
                     downloadLink.textContent = 'Download Resized Image';
+                    
+                    // Add click event to change text to "Downloaded"
+                    downloadLink.addEventListener('click', function() {
+                        downloadLink.textContent = 'Downloaded';
+                    });
                 };
                 img.src = URL.createObjectURL(file);
             }
